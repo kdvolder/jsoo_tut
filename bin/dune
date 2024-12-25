@@ -1,0 +1,4 @@
+(executable
+ (public_name jsoo_tut)
+ (name main)
+ (libraries jsoo_tut))
