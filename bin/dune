@@ -1,12 +1,13 @@
-(executable
- (public_name hello_console)
- (modes js exe)
- (preprocess (pps js_of_ocaml-ppx))
- (name hello_console)
- (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
+; (executable
+;  (public_name hello_console)
+;  (modes js exe)
+;  (name hello_console)
+;  (preprocess (pps js_of_ocaml-ppx))
+;  (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
 
 (executable
  (public_name hello_dom)
  (modes js exe)
  (name hello_dom)
+ (preprocess (pps js_of_ocaml-ppx))
  (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))

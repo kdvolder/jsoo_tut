@@ -118,13 +118,13 @@ Create a directory for html files:
 $ mkdir html
 ```
 
-Add a `hello.html` with this contents:
+Add a `hello_console.html` with this contents:
 
 ```
 <html>
   <head>
     <title>Jsoo_intro</title>
-    <script type="text/javascript" src="../_build/default/bin/main.bc.js"></script>
+    <script type="text/javascript" src="../_build/default/bin/hello_console.bc.js"></script>
   </head>
   <body>
   </body>
@@ -135,15 +135,151 @@ You can open this file in Chrome to 'run' it. For example on Unix and assuming w
 as our default browser we can do:
 
 ```
-$ xdg-open html/hello-html
+$ xdg-open html/hello_console.html
 ```
 
 And it will open the page. Note: at this point it will just display a blank page as there is
-nothing actually on the page. The `main.bc.js` script that is being loaded and executed just 
-prints something onto the console. You can open "Chrome Dev Tools" and look for "Console output"
-to check whether it worked:
+nothing actually on the page. The script that is being loaded and executed just 
+prints something onto the console. You can open "Chrome Dev Tools" and look for "Console output" to check whether it worked:
 
 ![hello-console](screenshots/console-hello-world.png)
+
+Using DOM in the Browser
+========================
+
+In a web-page, to show information to the user you wouldn't really print messages
+onto the console (that's useful for debugging output however). Instead you
+would modify the 'DOM' representing the page content.
+
+Before we start modifying the `hello_console.ml` example we'll make a copy into
+`hello_dom.ml` (so we can keep both versions in the final git repo of this tutorial).
+
+```
+$ cp bin/hello_console.ml bin/hello_dom.ml
+```
+
+We also update the `bin/dune` file:
+
+```
+(executable
+ (public_name hello_dom)
+ (modes js exe)
+ (name hello_dom)
+ (preprocess (pps js_of_ocaml-ppx))
+ (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
+```
+
+Note: I also kepy the `hello_console` executable stanza in comments. I wish I could
+keep them both at the same time but it looks like they somehow conflict with eachother.
+
+Now let's change the `hello_dom.ml` so it adds a "Hello Dom World!" pararagraph to the
+dom.
+
+```
+module Html = Js_of_ocaml.Dom_html
+module Js = Js_of_ocaml.Js
+module Dom = Js_of_ocaml.Dom
+
+let doc = Html.document
+
+let para txt =
+  let el = Html.createP doc in
+  Dom.appendChild el (doc##createTextNode (Js.string txt));
+  el
+
+let () = 
+  print_endline "Script is starting";
+  Dom.appendChild doc##.body (para "Hello Dom World!")
+```
+
+Let's walk through this examine some interesting bits and pieces. We start by creating
+some convenient aliases for some of the `Js_of_ocaml` library modules:
+
+```
+module Html = Js_of_ocaml.Dom_html
+module Js = Js_of_ocaml.Js
+module Dom = Js_of_ocaml.Dom
+```
+
+Generally you can find docs for these modules on [ocaml.org](https://ocaml.org/packages). For example [here](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Js/index.html) is a good entrypoint to the `Js` module docs.
+
+These modules provide bindings and utility functions to work with browser apis and Java
+Scripts. The docs are sort of helpful but can be quite confusing.
+
+An important thing to understand is that Ocaml and JavaScript are kind of 'separate
+worlds' and the values from both worlds have different types. (For example an Ocaml
+`bool` is different from a JavaScript boolean, and an Ocaml `string` is different from
+a JavaScript string). The `Js` modules provides functions and type declarations for
+converting between the two worlds.
+
+For a concrete let's have a look at our `para` function which accepts a `string` 
+value and creates `<p>` Dom element from it:
+
+![let para=...](![alt text](let-para.png))
+
+Looking at its type `string -> Html.paragraphElement Js.t` is interesting (FYI: in the screenshot you can see its inferred type as a 'codelens'
+displayed inside vscode by [Ocaml Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform)).
+
+As you can see it accepts one parameter of type `string` (which is an Ocaml string) and returns a thing of
+type `Html.paragraphElement Js.t`. The `Js.t` indicates that this is 'a type from the JavaScript world", rather
+than a 'pure Ocaml' type. Even within the "JavaScript World" `Js_of_Ocaml` provides a rich type system to keep
+track of different types of things. In this case the return value represents a `paragraphElement` which is a specific
+type of element you can find in (or insert into) a Dom tree.
+
+Let's take a look at some of the other helper functions used here as well as there types (Tip: if you have
+Ocaml Platform setup properly, you can hover over each of them in the VScode editor and see their
+types in a hover).
+
+The function `Js.string` has type `string -> Js.js_string Js.t`. In short, this function accepts a Ocaml `string`
+and converts it to a JavaScript string. Look at the details of the return type which are interesting 
+`Js.js_string Js.t`. Once more we see the `Js.t` which essentially says "A type from the JavaScript world", and 
+specifically a `Js.js_string`, so a string.
+
+The function `Dom.appendChild` has type `#Dom.node Js.t -> #Dom.node Js.t -> unit`. Once again
+we see the use of `Js.t` to indicate that this function accepts values "from the Javascript World", and
+specifically it accepets two `#Dom.node` values. This is a helper function that will append the
+second node as a child of the first one. This function is called for its side effect (it modifies the
+first node's state to add a child), so it returns `unit`)
+
+Some other interesting things to look at in this code is the use of the `##` and `##.` operators.
+This is a convenience syntax introduced and supported by the `(preprocess (pps js_of_ocaml-ppx))` line
+in our `dune` file. The `##` syntax provides an easy way to call methods  on `Js.t` objects. And the
+`##.` provides a way to access (or overwrite) properties in `Js.t` objects.
+
+For example `doc##createTextNode` references a method called `createTextNode` in the `doc` variable (which
+holds a referece to `Html.document js.t` value).
+
+Similarly `doc##.body` reference a `body` property in the same `doc` object.
+
+## Build and Run The Dom Example
+
+You can now build and run this as before:
+
+```
+$ dune build
+$ xdg-open html/hello_dom.html
+```
+
+However, you'll run into a problem. The page remains blank and we see an error in Js console:
+
+![hello-dom-error](screenshots/hello-dom-error.png)
+
+If you have some experience with Js in the browser you may be able to guess that the
+problem is caused by executing our code before the dom was loaded. Our reference to `doc##.body`
+was `null` causing this error. This happens because our code is running too early before the
+dom was parsed.
+
+One easy way to solve this is to add the `defer` attribute to our script tag in the html file.
+This attribute tells the browser not to execute the script until the dom was fully parsed.
+
+```
+<script type="text/javascript" src="../_build/default/bin/hello_dom.bc.js" defer></script>
+```
+
+Another and perhaps more conventional way to deal with this would be explicitly handle the
+timing in JavaScript (or in our case in Ocaml :-) by registering an `onLoad` event handler.
+
+
 
 
 
