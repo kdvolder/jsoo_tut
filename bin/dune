@@ -1,4 +1,6 @@
 (executable
- (public_name jsoo_tut)
- (name main)
- (libraries jsoo_tut))
+ (public_name hello_console)
+ (modes js exe)
+ (preprocess (pps js_of_ocaml-ppx))
+ (name hello_console)
+ (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
