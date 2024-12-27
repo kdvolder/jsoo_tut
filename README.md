@@ -217,7 +217,7 @@ keeping values from the two worlds separate from one another and converting betw
 For a concrete example let's have a look at the `para` function in our example. This accepts
 a `string` value and creates `<p>` Html/Dom element from it:
 
-![let para=...](![alt text](let-para.png))
+![let para=...](screenshots/let-para.png)
 
 Looking at its type `string -> Html.paragraphElement Js.t` is interesting (FYI: in the screenshot you can see its inferred type displayed as a 'codelens' inside Vscode [Ocaml Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform)).
 
@@ -244,15 +244,12 @@ first node's state to add a child), so it returns `unit`)
 
 Some other interesting things to look at in this code is the use of the `##` and `##.` operators.
 This is a convenience syntax introduced and supported by the `(preprocess (pps js_of_ocaml-ppx))` line
-in our `dune` file (this is a preprocessor provided by `Js_of_ocaml`). The `##` syntax provides 
-a convenient syntax to call methods on `Js.t` objects. And similarly the
-`##.` syntax allows accessing or overwriting (when used in combination with `:=`) properties 
-in `Js.t` objects.
+in our `dune` file (this is a preprocessor provided by `Js_of_ocaml`). The `##` is a convenient syntax to call methods on `Js.t` objects. 
 
-For example `doc##createTextNode` references a method called `createTextNode` in the `doc` variable (which
-holds a referece to `Html.document js.t` value).
+For example `doc##createTextNode` references a method called `createTextNode` in the `doc` variable (which holds a referece to a `Html.document js.t` value).
 
-Similarly `doc##.body` references a `body` property in the same `doc` object.
+Similarly `##.` is syntax for accessing or overwriting (when used in combination with `:=`) properties 
+in `Js.t` objects. For example `doc##.body` references a `body` property in the `doc` object.
 
 ## Build and Run The Dom Example
 
