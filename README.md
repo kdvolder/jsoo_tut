@@ -169,8 +169,9 @@ We also update the `bin/dune` file:
  (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
 ```
 
-Note: I also kepy the `hello_console` executable stanza in comments. I wish I could
-keep them both at the same time but it looks like they somehow conflict with eachother.
+Note: I also kept the `hello_console` executable stanza in comments. I wish I could
+have kept them both active at the same time but it looks like they somehow conflict 
+with eachother.
 
 Now let's change the `hello_dom.ml` so it adds a "Hello Dom World!" pararagraph to the
 dom.
@@ -192,7 +193,7 @@ let () =
   Dom.appendChild doc##.body (para "Hello Dom World!")
 ```
 
-Let's walk through this examine some interesting bits and pieces. We start by creating
+Let's examine some interesting bits and pieces more closely. We start by creating
 some convenient aliases for some of the `Js_of_ocaml` library modules:
 
 ```
@@ -203,30 +204,30 @@ module Dom = Js_of_ocaml.Dom
 
 Generally you can find docs for these modules on [ocaml.org](https://ocaml.org/packages). For example [here](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Js/index.html) is a good entrypoint to the `Js` module docs.
 
-These modules provide bindings and utility functions to work with browser apis and Java
-Scripts. The docs are sort of helpful but can be quite confusing.
+These modules provide bindings and utility functions to work with browser apis and 
+"the JavaScript World". The docs are sort of helpful but can be quite confusing.
 
 An important thing to understand is that Ocaml and JavaScript are kind of 'separate
-worlds' and the values from both worlds have different types. (For example an Ocaml
-`bool` is different from a JavaScript boolean, and an Ocaml `string` is different from
-a JavaScript string). The `Js` modules provides functions and type declarations for
-converting between the two worlds.
+worlds' and the values that live in those two different worlds have different types. 
+For example an Ocaml `bool` is different from a JavaScript boolean, and an Ocaml `string` 
+is different from a JavaScript string; you can't just use them interchangeably.
+The `Js` module is key here and provides functions and type declarations for
+keeping values from the two worlds separate from one another and converting between them.
 
-For a concrete let's have a look at our `para` function which accepts a `string` 
-value and creates `<p>` Dom element from it:
+For a concrete example let's have a look at the `para` function in our example. This accepts
+a `string` value and creates `<p>` Html/Dom element from it:
 
 ![let para=...](![alt text](let-para.png))
 
-Looking at its type `string -> Html.paragraphElement Js.t` is interesting (FYI: in the screenshot you can see its inferred type as a 'codelens'
-displayed inside vscode by [Ocaml Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform)).
+Looking at its type `string -> Html.paragraphElement Js.t` is interesting (FYI: in the screenshot you can see its inferred type displayed as a 'codelens' inside Vscode [Ocaml Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform)).
 
-As you can see it accepts one parameter of type `string` (which is an Ocaml string) and returns a thing of
-type `Html.paragraphElement Js.t`. The `Js.t` indicates that this is 'a type from the JavaScript world", rather
-than a 'pure Ocaml' type. Even within the "JavaScript World" `Js_of_Ocaml` provides a rich type system to keep
-track of different types of things. In this case the return value represents a `paragraphElement` which is a specific
-type of element you can find in (or insert into) a Dom tree.
+As you can see it accepts one parameter of type `string` (this is a 'plain' Ocaml string) and returns a thing of
+type `Html.paragraphElement Js.t`. The `Js.t` indicates that this is "A type from the JavaScript world", rather
+than a "plain Ocaml type". Even within the "JavaScript World" `Js_of_Ocaml` provides a rich type system to keep
+track of different types of things. In this case the return can be seen to represent a `paragraphElement` which 
+is a specific type of element you can insert into a Dom tree.
 
-Let's take a look at some of the other helper functions used here as well as there types (Tip: if you have
+Let's take a look at some of the other library functions used here as well as their types (Tip: if you have
 Ocaml Platform setup properly, you can hover over each of them in the VScode editor and see their
 types in a hover).
 
@@ -237,23 +238,25 @@ specifically a `Js.js_string`, so a string.
 
 The function `Dom.appendChild` has type `#Dom.node Js.t -> #Dom.node Js.t -> unit`. Once again
 we see the use of `Js.t` to indicate that this function accepts values "from the Javascript World", and
-specifically it accepets two `#Dom.node` values. This is a helper function that will append the
+specifically it accepts two `#Dom.node`s as paramemters. This is a helper function that will append the
 second node as a child of the first one. This function is called for its side effect (it modifies the
 first node's state to add a child), so it returns `unit`)
 
 Some other interesting things to look at in this code is the use of the `##` and `##.` operators.
 This is a convenience syntax introduced and supported by the `(preprocess (pps js_of_ocaml-ppx))` line
-in our `dune` file. The `##` syntax provides an easy way to call methods  on `Js.t` objects. And the
-`##.` provides a way to access (or overwrite) properties in `Js.t` objects.
+in our `dune` file (this is a preprocessor provided by `Js_of_ocaml`). The `##` syntax provides 
+a convenient syntax to call methods on `Js.t` objects. And similarly the
+`##.` syntax allows accessing or overwriting (when used in combination with `:=`) properties 
+in `Js.t` objects.
 
 For example `doc##createTextNode` references a method called `createTextNode` in the `doc` variable (which
 holds a referece to `Html.document js.t` value).
 
-Similarly `doc##.body` reference a `body` property in the same `doc` object.
+Similarly `doc##.body` references a `body` property in the same `doc` object.
 
 ## Build and Run The Dom Example
 
-You can now build and run this as before:
+You can now build and run in the same way as the console example:
 
 ```
 $ dune build
@@ -267,7 +270,7 @@ However, you'll run into a problem. The page remains blank and we see an error i
 If you have some experience with Js in the browser you may be able to guess that the
 problem is caused by executing our code before the dom was loaded. Our reference to `doc##.body`
 was `null` causing this error. This happens because our code is running too early before the
-dom was parsed.
+dom was parsed (so the `document.body` doesn't exist yet).
 
 One easy way to solve this is to add the `defer` attribute to our script tag in the html file.
 This attribute tells the browser not to execute the script until the dom was fully parsed.
@@ -276,7 +279,7 @@ This attribute tells the browser not to execute the script until the dom was ful
 <script type="text/javascript" src="../_build/default/bin/hello_dom.bc.js" defer></script>
 ```
 
-Another and perhaps more conventional way to deal with this would be explicitly handle the
+Another and perhaps more conventional way to deal with this would be explicitly ensure the correct
 timing in JavaScript (or in our case in Ocaml :-) by registering an `onLoad` event handler.
 
 
