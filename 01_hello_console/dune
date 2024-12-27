@@ -1,0 +1,6 @@
+(executable
+ (public_name hello_console)
+ (modes js exe)
+ (name hello_console)
+ (preprocess (pps js_of_ocaml-ppx))
+ (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))

@@ -1,0 +1,13 @@
+(executable
+ (modes js exe)
+ (name hello_dom)
+ (preprocess (pps js_of_ocaml-ppx))
+ (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
+
+(install
+  (section doc)
+  (files (hello_dom.bc.js as examples/hello_dom.bc.js)))
+
+(install
+  (section doc)
+  (files (hello_dom.html as examples/hello_dom.html)))

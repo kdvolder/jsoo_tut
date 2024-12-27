@@ -48,10 +48,11 @@ when executed. The code for it is in `bin/main.ml` and looks like this:
 let () = print_endline "Hello, World!"
 ```
 
-To avoid confusing different 'versions' of our app as we progress. I have
-renamed this to `hello_console.ml`.
+To avoid confusing different 'versions' of our app as we progress. I have moved
+and renamed this to `01_hello_console/hello_console.ml`.
 
-To support js_of_ocaml we modified the `bin/dune` file as follows:
+We also moved the `bin/dune` to `01_hello_console` and modified it to support 
+`js_of_ocaml` as follows:
 
 ```
 (executable
@@ -87,20 +88,20 @@ Hello, World!
 You can also run it using `dune exec`:
 
 ```
-$ dune exec bin/hello_console.exe
+$ dune exec 01_hello_console/hello_console.exe
 Hello, World!                 
 ```
 
 It also generates a js file here:
 
 ```
-_build/default/bin/hello_console.bc.js
+_build/default/01_hello_console/hello_console.bc.js
 ```
 
 You can run this using nodejs:
 
 ```
-$ node _build/default/bin/hello_console.bc.js
+$ node _build/default/01_hello_console/hello_console.bc.js
 Hello, World!
 ```
 
@@ -110,21 +111,20 @@ Running in a Browser and using Dom
 Now that we have some 'scaffold' to build things, let's start following along the
 lines of the tutorial from here: https://hackmd.io/@Swerve/HyhrqnFeF
 
-We need a html file that can be loaded in a browser and loads our 'js' file.
+However instead of using the `Graphics` library to draw on a canvas in the
+browser, we'll instead try to use simple html dom elements to create a similar
+basic ui.
 
-Create a directory for html files:
-
-```
-$ mkdir html
-```
-
-Add a `hello_console.html` with this contents:
+First, we'll need a html file that can be loaded in a browser and loads our 'js' file.
+It doesn't really matter what we call this file or where we put it now, so let's
+just put it alongside the `hello_console.ml` file, in the same directory, and call
+it `hello_console.html`. Add this contents:
 
 ```
 <html>
   <head>
     <title>Jsoo_intro</title>
-    <script type="text/javascript" src="../_build/default/bin/hello_console.bc.js"></script>
+    <script type="text/javascript" src="../_build/default/01_hello_console/hello_console.bc.js"></script>
   </head>
   <body>
   </body>
@@ -135,30 +135,39 @@ You can open this file in Chrome to 'run' it. For example on Unix and assuming w
 as our default browser we can do:
 
 ```
-$ xdg-open html/hello_console.html
+$ xdg-open 01_hello_console/hello_console.html
 ```
 
-And it will open the page. Note: at this point it will just display a blank page as there is
+This will open the page. Note: at this point it will just display a blank page as there is
 nothing actually on the page. The script that is being loaded and executed just 
 prints something onto the console. You can open "Chrome Dev Tools" and look for "Console output" to check whether it worked:
 
 ![hello-console](screenshots/console-hello-world.png)
 
-Using DOM in the Browser
-========================
+## Using DOM in the Browser
 
 In a web-page, to show information to the user you wouldn't really print messages
 onto the console (that's useful for debugging output however). Instead you
 would modify the 'DOM' representing the page content.
 
-Before we start modifying the `hello_console.ml` example we'll make a copy into
-`hello_dom.ml` (so we can keep both versions in the final git repo of this tutorial).
+### Using 'dune' to install our js and html files
+
+Before we start modifying the `hello_console.ml` example we'll make a copy of it
+(so we can keep both versions in the final git repo of this tutorial). 
+
+While we are at it, we will also change the `dune` file and remove the `public` name
+for our executable, since it really doesn't serve a purpose (you cannot run the 'dom' version
+of the example as a standalone executable since it depends on some JavaScript functions which
+simply are not available when running a Ocaml binary executable).
 
 ```
-$ cp bin/hello_console.ml bin/hello_dom.ml
+$ cp -R 01_hello_console 02_hello_dom
 ```
 
-We also update the `bin/dune` file:
+Next we rename all files in the directory fron `hello_console*` to `hello_dom*` 
+and make similar name changes in the `dune` file.
+
+The dune file is now:
 
 ```
 (executable
@@ -169,9 +178,35 @@ We also update the `bin/dune` file:
  (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
 ```
 
-Note: I also kept the `hello_console` executable stanza in comments. I wish I could
-have kept them both active at the same time but it looks like they somehow conflict 
-with eachother.
+Now we remove the `public_name` as explained before, and instead we add some `install` stanzas
+to install our `hello_dom.html` and `hello_dom.bc.js` files into the `docs/example` directory.
+Finally our `dune` file looks like this:
+
+```
+(executable
+ (modes js exe)
+ (name hello_dom)
+ (preprocess (pps js_of_ocaml-ppx))
+ (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
+
+(install
+  (section doc)
+  (files (hello_dom.bc.js as examples/hello_dom.bc.js)))
+
+(install
+  (section doc)
+  (files (hello_dom.html as examples/hello_dom.html)))
+```
+
+Now, when we `dune build` it will not place a `hello_dom` executable into the install directory
+anymore, instead it will place our `.html` and `.bc.js` files into the `docs` install section.
+
+So from now on this is how we build and open it:
+
+```
+$ dune build
+$ xdg-open _build/install/default/doc/jsoo_tut/examples/hello_dom.html
+```
 
 Now let's change the `hello_dom.ml` so it adds a "Hello Dom World!" pararagraph to the
 dom.
@@ -204,15 +239,15 @@ module Dom = Js_of_ocaml.Dom
 
 Generally you can find docs for these modules on [ocaml.org](https://ocaml.org/packages). For example [here](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Js/index.html) is a good entrypoint to the `Js` module docs.
 
-These modules provide bindings and utility functions to work with browser apis and 
-"the JavaScript World". The docs are sort of helpful but can be quite confusing.
+These modules provide bindings and utility functions to work with browser apis and values
+from "the JavaScript World". The docs are sort of helpful but they can be quite confusing.
 
-An important thing to understand is that Ocaml and JavaScript are kind of 'separate
+An important thing to understand is that Ocaml and JavaScript are really 'separate
 worlds' and the values that live in those two different worlds have different types. 
 For example an Ocaml `bool` is different from a JavaScript boolean, and an Ocaml `string` 
-is different from a JavaScript string; you can't just use them interchangeably.
+is also different from a JavaScript string; you can't just use them interchangeably.
 The `Js` module is key here and provides functions and type declarations for
-keeping values from the two worlds separate from one another and converting between them.
+keeping values from these two worlds separate from one another and converting between them.
 
 For a concrete example let's have a look at the `para` function in our example. This accepts
 a `string` value and creates `<p>` Html/Dom element from it:
@@ -221,20 +256,23 @@ a `string` value and creates `<p>` Html/Dom element from it:
 
 Looking at its type `string -> Html.paragraphElement Js.t` is interesting (FYI: in the screenshot you can see its inferred type displayed as a 'codelens' inside Vscode [Ocaml Platform](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform)).
 
-As you can see it accepts one parameter of type `string` (this is a 'plain' Ocaml string) and returns a thing of
-type `Html.paragraphElement Js.t`. The `Js.t` indicates that this is "A type from the JavaScript world", rather
-than a "plain Ocaml type". Even within the "JavaScript World" `Js_of_Ocaml` provides a rich type system to keep
-track of different types of things. In this case the return can be seen to represent a `paragraphElement` which 
-is a specific type of element you can insert into a Dom tree.
+As you can see it accepts one parameter of type `string` (this is a 'plain' Ocaml string) and 
+returns a thing of type `Html.paragraphElement Js.t`. The `Js.t` indicates that this is 
+"A type from the JavaScript world", rather than a "plain Ocaml type". Even within the 
+"JavaScript World" `Js_of_Ocaml` provides a rich type system to keep track of different 
+types of things. In this case the return type represents a `paragraphElement` which 
+is a rather specific type of element you can insert into a Dom tree.
 
-Let's take a look at some of the other library functions used here as well as their types (Tip: if you have
-Ocaml Platform setup properly, you can hover over each of them in the VScode editor and see their
-types in a hover).
+Let's take a look at some of the other library functions used here as well as their types 
+(Tip: if you have Ocaml Platform setup properly, you can hover over each of them in the 
+VScode editor and see their types in a hover. Personally I find this extremely helpful
+when trying to work with unfamiliar library apis, or even familiar ones :-).
 
-The function `Js.string` has type `string -> Js.js_string Js.t`. In short, this function accepts a Ocaml `string`
-and converts it to a JavaScript string. Look at the details of the return type which are interesting 
-`Js.js_string Js.t`. Once more we see the `Js.t` which essentially says "A type from the JavaScript world", and 
-specifically a `Js.js_string`, so a string.
+The function `Js.string` has type `string -> Js.js_string Js.t`. In short, this function 
+accepts a Ocaml `string` and converts it to a JavaScript string. Look at the details of 
+the return type which are interesting: `Js.js_string Js.t`.  Once more we see the `Js.t` 
+which essentially says "This is a type from the JavaScript world", and 
+specifically a `Js.js_string`, so more specifically it is a JavaScript string.
 
 The function `Dom.appendChild` has type `#Dom.node Js.t -> #Dom.node Js.t -> unit`. Once again
 we see the use of `Js.t` to indicate that this function accepts values "from the Javascript World", and
@@ -253,11 +291,11 @@ in `Js.t` objects. For example `doc##.body` references a `body` property in the 
 
 ## Build and Run The Dom Example
 
-You can now build and run in the same way as the console example:
+You can now build and 'run' the example:
 
 ```
 $ dune build
-$ xdg-open html/hello_dom.html
+$ xdg-open _build/install/default/doc/jsoo_tut/examples/hello_dom.html
 ```
 
 However, you'll run into a problem. The page remains blank and we see an error in Js console:
@@ -266,7 +304,7 @@ However, you'll run into a problem. The page remains blank and we see an error i
 
 If you have some experience with Js in the browser you may be able to guess that the
 problem is caused by executing our code before the dom was loaded. Our reference to `doc##.body`
-was `null` causing this error. This happens because our code is running too early before the
+was `null` causing this error. This happens because our script code is running too early before the
 dom was parsed (so the `document.body` doesn't exist yet).
 
 One easy way to solve this is to add the `defer` attribute to our script tag in the html file.
@@ -276,8 +314,189 @@ This attribute tells the browser not to execute the script until the dom was ful
 <script type="text/javascript" src="../_build/default/bin/hello_dom.bc.js" defer></script>
 ```
 
-Another and perhaps more conventional way to deal with this would be explicitly ensure the correct
-timing in JavaScript (or in our case in Ocaml :-) by registering an `onLoad` event handler.
+## Event Handlers (for 'onload' event)
+
+Another and perhaps more conventional way to deal with this would be to explicitly ensure 
+the correct timing in JavaScript (or in our case in Ocaml :-) by registering an `onLoad` 
+event handler. Normally I'd probably choose to use the `defer` attribute because its
+a simpler solution. But using the `onload` instead gives us some more opportunities to
+learn about the `Js_of_ocaml` libraries and how they 'bind' that kind of api, so let's
+do that instead.
+
+First we extract the code that adds the "Hello World!" message to the dom into a
+separate function, so we can later attach it as a 'handler' for the `onload` event:
+
+```
+let on_load () =
+  print_endline "on_load ...";
+  Dom.appendChild doc##.body (para "Hello Dom World!")
+```
+
+Attaching it to the onload event is done by using the `window` object from JavaScript.
+For convenience we assign it to a ocaml variable, similar to what we did
+for the `document` object:
+
+```
+let doc = Html.document
+let window = Html.window
+```
+
+Here's how we attach our `on_load` function as onload handler to the `window` object:
+
+```
+  Html.window##.onload := Dom.handler (fun (_) -> on_load (); Js._true)
+```
+
+Once you see the 'end result' it probably makes good sense and you can understand
+it intuitively. However getting there was a little tricky for me so it might be
+helpful to walk through the discovery process.
+
+First, if you are familiar with JavaScript browser api you probably could have
+guessed we need something like `window.onload` (in JavaScript syntax). For 
+example, you can easily find something like [this explanation](https://www.squash.io/how-to-use-window-onload-in-javascript/),
+which tells you to do something like:
+
+```javascript
+    window.onload = function() {
+        // Code to be executed after the page has loaded
+        console.log("Page loaded!");
+    };
+```
+
+But how do we 'convert' that into `Js_of_ocaml`? We already found the `Html.window` object
+so that is a good start. As usual in Ocaml, types can be very helpful in figuring out
+what something is... and what you can do with it. When hovering over `Html.window` in
+the editor we can see the type is `Html.window Js.t`. We should be starting to get
+a little familiar with this already. Again we have `Js.t` meaning this is a "value from
+JavaScript world", and specifically it is of type `Html.window`.
+
+The content assist in the editor can also be helpful since the editor (or more accurately,
+the Ocaml Language Server) knows the type of our `window` variable. We may suspect
+that `window` has a 'onload' property or method. (This is true in fact, we can find the
+doc here: https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Dom_html/class-type-window/index.html#method-onunload).
+
+You can either find this out by searching through the docs, or navigating to source code
+of the libraries... or by using the editor content assist to try and autocomplete something
+like `window##on` or `window##.on`. Remember to use the `##` and `##.` syntax provided
+by `Js_of_ocaml` for accessing methods and properties in JavaScript objects.
+Whatever way you figured it out, you'll probably be typing something like:
+
+```
+window##.onload
+```
+
+Now, when you hover over that expression, Vscode / Ocaml Platform can tell you its
+type is `(Html.window Js.t, Html.event Js.t) Dom.event_listener Js.prop`. Start reading
+it from the end... and you can tell that its a 'JavaScript property' so this means its
+something you can either read or assign a value to. But what value to assing to it?
+Conceptually we just want to assign our `on_load` function, but that doesn't work
+because it is not the right type of thing (for one its not a "JavaScript World" type 
+of thing, its an "Ocaml world" type of thing).
+
+It is interesting to try though... and see the error we get:
+
+```
+File "02_hello_dom/hello_dom.ml", line 18, characters 2-22:
+18 |   Html.window##.onload := on_load
+       ^^^^^^^^^^^^^^^^^^^^
+Error: This expression has type
+         (Html.window Js.t, Html.event Js.t) Dom.event_listener
+         Js_of_ocaml__.Js.prop =
+           < get : (Html.window Js.t, Html.event Js.t) Dom.event_listener;
+             set : (Html.window Js.t, Html.event Js.t) Dom.event_listener ->
+                   unit >
+           Js.gen_prop
+       but an expression was expected of type
+         < set : (unit -> unit) -> unit; .. > Js.gen_prop
+       The method set has type
+       (Html.window Js.t, Html.event Js.t) Dom.event_listener -> unit,
+       but the expected method type was (unit -> unit) -> unit
+```
+
+A little cryptic but with some effort we can intrepret that. We can see the type of
+our `onload` (i.e. `unit -> unit`) appears in the message. And we see that is not compatible
+with `(Html.window Js.t, Html.event Js.t) Dom.event_listener`. It is a little strange
+that it tells us it 'expected' `unit -> unit` rather than telling us it expected
+`(Html.window Js.t, Html.event Js.t) Dom.event_listener`. But this a common way
+in which type errors produced by type inference can be confusing. The type checker
+really doesn't make a distinction between the two sides of the 'equation' it just
+knows that those two things do no match and that this is a problem (i.e. it doesn't
+consider which of the two sides of the equation are under our control). Anyway...
+what we have to figure out is what *does* the property expect, or what *is*
+a `(Html.window Js.t, Html.event Js.t) Dom.event_listener`... and how can we
+make one by wrapping our `on_load` Ocaml function?
+
+Let's start looking at the type defintion of `event_listener` [in the docs](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Dom/index.html#type-event_listener):
+
+```
+type (-'a, -'b) event_listener
+```
+
+It appears to be a type contructor with two type parameters representing some specific
+information about the type of the event itself and the type of the 'target object' on
+which the even happened. We don't really care about these in our simple example (because our handler
+uses no information from either the event or the target). So let's ignore the type parameters.
+
+The other thing we see is that `event_listener` is an 'opaque' type. If you don't know
+what that means you can read more about it [here](https://cs3110.github.io/textbook/chapters/modules/encapsulation.html). But essentially it means that the specific implementation of
+this type are 'hidden' from us. We do not know how the type is represented internally
+in the module. As a consequence, this means we cannot 'just' create values of that type
+ourselves. If there is any way for us to create handlers then it must be done via 
+some functions provided by the `Js_of_ocaml` library apis. Now... unless you are
+familiar with a library and know where to look, it can be challenging to find that
+specific function which we suspect must exist somewhere in the library. I don't have
+good suggestions really on how to find it easily, but you are looking for some function or
+functions that *return* something of type `event_listener`. With a bit of luck I 
+found it in here in the [Event handlers](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Dom_html/index.html#val-handler) Section of `Dom_html` module (which we aliassed in our code as `Html`, so
+we can reference it in our code as `Html.handler`).
+
+The type of this function is:
+
+```ocaml
+val handler : ('e event Js.t as 'b -> bool Js.t) -> ('a, 'b) event_listener
+```
+
+So this function accepts another 'ordinary' Ocaml function and 'wraps it' as 
+a JavaScript event_listener. The type also tells us what that Ocaml function
+should look like: it needs to accept an event as a parameter
+and return a JavaScript boolean (`bool Js.t`) as a result. Our `on_load`
+function doesn't quite fit the mold, but its easy enough to wrap and adapt
+its signature with a lambda  `fun`... and that is how we get to:
+
+```Ocaml
+Html.window##.onload := Html.handler (fun _ -> on_load (); Js._true)
+```
+
+Putting it all together, we have this now in `hello_dom.ml`:
+
+```Ocaml
+module Html = Js_of_ocaml.Dom_html
+module Js = Js_of_ocaml.Js
+module Dom = Js_of_ocaml.Dom
+
+let doc = Html.document
+let window = Html.window
+
+let para txt =
+  let el = Html.createP doc in
+  Dom.appendChild el (doc##createTextNode (Js.string txt));
+  el
+let on_load () =
+  print_endline "on_load ...";
+  Dom.appendChild doc##.body (para "Hello Dom World!")
+
+let () = 
+  print_endline "Script is starting";
+  window##.onload := Html.handler (fun _ -> on_load (); Js._true)
+```
+
+Now when we build and run it, you will see the "Hello Dom World!" displayed in the page.
+
+## Dynamic behavior
+
+Next we'll ...
+
+
 
 
 

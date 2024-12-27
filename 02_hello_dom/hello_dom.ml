@@ -3,6 +3,7 @@ module Js = Js_of_ocaml.Js
 module Dom = Js_of_ocaml.Dom
 
 let doc = Html.document
+let window = Html.window
 
 let para txt =
   let el = Html.createP doc in
@@ -15,5 +16,5 @@ let on_load () =
 
 let () = 
   print_endline "Script is starting";
-  Html.window##.onload := Dom.handler (fun (_) -> on_load (); Js._true)
+  window##.onload := Html.handler (fun _ -> on_load (); Js._true)
   

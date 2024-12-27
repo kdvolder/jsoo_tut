@@ -1,0 +1,39 @@
+module Html = Js_of_ocaml.Dom_html
+module Js = Js_of_ocaml.Js
+module Dom = Js_of_ocaml.Dom
+
+let doc = Html.document
+let window = Html.window
+
+let para txt =
+  let el = Html.createP doc in
+  Dom.appendChild el (doc##createTextNode (Js.string txt));
+  el
+
+let msgBox = ref (para "Loading...")
+
+let counter = ref 0
+
+let showMsg txt = 
+  let node = !msgBox in
+  let childMaybe = node##.firstChild in
+  Js.Opt.iter childMaybe (Dom.removeChild node);
+  Dom.appendChild node (doc##createTextNode (Js.string txt))
+
+let every_so_often () =
+  counter := !counter + 1;
+  let now = new%js Js.date_now in
+
+  showMsg ("Time has passed: " ^ (string_of_int !counter) ^ "@" ^ (Js.to_string now##toTimeString));
+  print_endline "Some time has passed"
+
+let on_load () =
+  print_endline "on_load ...";
+  Dom.appendChild doc##.body !msgBox;
+  let _ = window##setInterval (Js.wrap_callback every_so_often) 5000.0 in
+  showMsg "Hello Dom World!"
+
+let () = 
+  print_endline "Script is starting";
+  Html.window##.onload := Dom.handler (fun (_) -> on_load (); Js._true)
+  
