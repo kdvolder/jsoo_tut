@@ -3,24 +3,27 @@ Js_of_ocaml Tutorial:
 
 This tutorial walks through an example starting a `Js_of_ocaml` very simple web application.
 
-It was heavily inspired by https://hackmd.io/@Swerve/HyhrqnFeF 
+It was heavily inspired by https://hackmd.io/@Swerve/HyhrqnFeF (see also https://discuss.ocaml.org/t/it-there-a-tutorial-for-js-of-ocaml-with-simple-graphics/4636/7)
 
-This is a great tutorial and I highly recommend it.
+The 'application' we are building is very similar:
+ - hello world app displaying a message in the browser
+ - adding a counter that updates every second.
+ - adding a 'reset' button to reset the counter.
 
-The 'application' we are building is very similar although we will not be using the
-`Graphics` library as that tutorial does. Instead we'll use more low-level `Js_of_ocaml`
-library apis to directly manipulate the dom.
+How this is different from the tutorial it is based on: 
+- We will not be using the `Graphics` library to draw things in a canvase. Instead we'll use more  
+  low-level `Js_of_ocaml` library apis to directly manipulate the dom.
+- We'll also delve a little deeper into the steps the setup your project build files and 'IDE'
+  to edit, build and run your code. I find that this often gives me more troubles than 
+  understanding the actual Ocaml code in these kinds of examples, so I decided to
+  write down the steps as I figured them out.
 
-See also:
- - https://discuss.ocaml.org/t/it-there-a-tutorial-for-js-of-ocaml-with-simple-graphics/4636/7
+## Setting up project scaffolding
 
-Setting up project scaffolding
-===============================
-
-We'll start by setting up a project structure with opam and dune so we can run and
+We'll start by setting up a project structure with `opam` and `dune` so we can run and
 build our app.
 
-Assumption: you already have opam installed, that's where we start.
+Assumption: you already have [opam installed](https://opam.ocaml.org/doc/Install.html), that's where we start.
 
 Step 1: create a local switch
 
@@ -45,6 +48,18 @@ Step 4: install jsof_ocaml
 
 ```
 opam install js_of_ocaml js_of_ocaml-ppx js_of_ocaml-lwt
+```
+
+## Setting up your IDE
+
+I recommend you use vscode for editing and that you install [Ocaml Platform Vscode Extensions](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform). 
+
+See [here](https://ocaml.org/docs/configuring-your-editor) for detailed instructions.
+
+TLDR; Besides the vscode extension you also need to install the `ocaml-lsp-server`:
+
+```
+opam install ocaml-lsp-server ocamlformat
 ```
 
 ## Hello World (cli/console)
@@ -118,12 +133,8 @@ Hello, World!
 Running in a Browser and using Dom
 ==================================
 
-Now that we have some 'scaffold' to build things, let's start following along the
-lines of the tutorial from here: https://hackmd.io/@Swerve/HyhrqnFeF
-
-However instead of using the `Graphics` library to draw on a canvas in the
-browser, we'll instead try to use simple html dom elements to create a similar
-basic ui.
+Now that we have some 'scaffold' to build things, let's start actually making this
+into a 'browser/html/js app'.
 
 First, we'll need a html file that can be loaded in a browser and loads our 'js' file.
 It doesn't really matter what we call this file or where we put it now, so let's
@@ -676,10 +687,36 @@ care of `onload` related timing issues.
 
 ### Adding a 'counter' to our page
 
-Now let's try to use this to create an additional 'dynamci' messagebox containing a counter to
-our page.
+Now let's try to use this to create an additional 'dynamic' messagebox containing a counter to
+our page. Since we made our 'reusable' message box it is now actually rather easy to
+add another messagbox to our ui to display the counter. In `hello_dom.ml`:
 
-In 
+```
+let () = 
+  print_endline "Script is starting";
+  let _hello = MessageBox.create "Hello Dom World!" in
+  let _ctr = MessageBox.create "Counter will be here" in
+  ()
+```
+
+Once we build and run this, we'll see something like:
+
+![UI with counter placeholder](screenshots/ui-counter-placeholder.png)
+
+Note: perhaps somewhat unexpectedly the order of our two 'message boxes' on the page
+are reversed. This is due to the simplistic implementation of our 'component' which 
+just appends itself to body do the document without explicitly controlling the order.
+Nevertheless we might expect that the boxes would appear in the order they are 
+being created since each is added at the end of the `<body>`. However, the
+messagebox's `create` function doesn't immediately add its elements to the dom
+but does so asynchronously (i.e. it is waiting for windows 'onload' event).
+The `Lwt` library we used for this doesn't guarantee the order in which these
+asynchronous callbacks are executed, and that is why the results are a bit
+'unpredictable'. If we wanted to improve on this we'd have to redesign the 
+simplistic api/implementation for our messagebox a little to allow the user 
+to have more control over when or where elements are actually added to the dom.
+
+
 
 
 

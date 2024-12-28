@@ -8,6 +8,6 @@ let () =
   print_endline "Registering onload handler";
   Dom_html.window##.onload :=  Dom.handler (fun _ ->
     print_endline "onload handler called";
-    Lwt.wakeup_later resolve ();
+    Lwt.wakeup resolve ();
     Js._true
   )
