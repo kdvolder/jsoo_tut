@@ -52,7 +52,7 @@ opam install js_of_ocaml js_of_ocaml-ppx js_of_ocaml-lwt
 
 ## Setting up your IDE
 
-I recommend you use vscode for editing and that you install [Ocaml Platform Vscode Extensions](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform). 
+I recommend you use vscode for editing and that you install [Ocaml Platform Vscode Extension](https://marketplace.visualstudio.com/items?itemName=ocamllabs.ocaml-platform). 
 
 See [here](https://ocaml.org/docs/configuring-your-editor) for detailed instructions.
 
@@ -192,16 +192,14 @@ The dune file is now:
 
 ```
 (executable
- (public_name hello_dom)
  (modes js exe)
  (name hello_dom)
  (preprocess (pps js_of_ocaml-ppx))
  (libraries jsoo_tut js_of_ocaml js_of_ocaml-lwt))
 ```
 
-Now we remove the `public_name` as explained before, and instead we add some `install` stanzas
-to install our `hello_dom.html` and `hello_dom.bc.js` files into the `docs/example` directory.
-Finally our `dune` file looks like this:
+Now we add some `install` stanzas to install our `hello_dom.html` and `hello_dom.bc.js` files 
+into the `docs/example` directory. Finally our `dune` file looks like this:
 
 ```
 (executable
@@ -282,12 +280,13 @@ returns a thing of type `Html.paragraphElement Js.t`. The `Js.t` indicates that 
 "A type from the JavaScript world", rather than a "plain Ocaml type". Even within the 
 "JavaScript World" `Js_of_Ocaml` provides a rich type system to keep track of different 
 types of things. In this case the return type represents a `paragraphElement` which 
-is a rather specific type of element you can insert into a Dom tree.
+is a rather specific type of element (a `<p>` element is just one of many kinds of
+things you can insert into a Dom tree).
 
 Let's take a look at some of the other library functions used here as well as their types 
 (Tip: if you have Ocaml Platform setup properly, you can hover over each of them in the 
 VScode editor and see their types in a hover. Personally I find this extremely helpful
-when trying to work with unfamiliar library apis, or even familiar ones :-).
+when trying to work with unfamiliar library apis, or even familiar ones :-)
 
 The function `Js.string` has type `string -> Js.js_string Js.t`. In short, this function 
 accepts a Ocaml `string` and converts it to a JavaScript string. Look at the details of 
@@ -303,7 +302,7 @@ first node's state to add a child), so it returns `unit`)
 
 Some other interesting things to look at in this code is the use of the `##` and `##.` operators.
 This is a convenience syntax introduced and supported by the `(preprocess (pps js_of_ocaml-ppx))` line
-in our `dune` file (this is a preprocessor provided by `Js_of_ocaml`). The `##` is a convenient syntax to call methods on `Js.t` objects. 
+in our `dune` file (this is a preprocessor provided by `Js_of_ocaml`). The `##`  is a convenient syntax to call methods on `Js.t` objects.
 
 For example `doc##createTextNode` references a method called `createTextNode` in the `doc` variable (which holds a referece to a `Html.document js.t` value).
 
@@ -326,7 +325,7 @@ However, you'll run into a problem. The page remains blank and we see an error i
 If you have some experience with Js in the browser you may be able to guess that the
 problem is caused by executing our code before the dom was loaded. Our reference to `doc##.body`
 was `null` causing this error. This happens because our script code is running too early before the
-dom was parsed (so the `document.body` doesn't exist yet).
+dom was parsed (so the `document##.body` is still `null`).
 
 One easy way to solve this is to add the `defer` attribute to our script tag in the html file.
 This attribute tells the browser not to execute the script until the dom was fully parsed.
@@ -365,12 +364,12 @@ let window = Html.window
 Here's how we attach our `on_load` function as onload handler to the `window` object:
 
 ```
-  Html.window##.onload := Dom.handler (fun (_) -> on_load (); Js._true)
+  window##.onload := Dom.handler (fun (_) -> on_load (); Js._true)
 ```
 
-Once you see the 'end result' it probably makes good sense and you can understand
+Reading this code, you can probably understand
 it intuitively. However getting there was a little tricky for me so it might be
-helpful to walk through the discovery process.
+helpful to walk through the non-obvious 'discovery process'.
 
 First, if you are familiar with JavaScript browser api you probably could have
 guessed we need something like `window.onload` (in JavaScript syntax). For 
@@ -408,8 +407,8 @@ window##.onload
 
 Now, when you hover over that expression, Vscode / Ocaml Platform can tell you its
 type is `(Html.window Js.t, Html.event Js.t) Dom.event_listener Js.prop`. Start reading
-it from the end... and you can tell that its a 'JavaScript property' so this means its
-something you can either read or assign a value to. But what value to assing to it?
+it from the end... and you can tell that its a 'JavaScript property' (`... Js.prop`) so 
+this means its something you can either read or assign a value to. But what value to assing to it?
 Conceptually we just want to assign our `on_load` function, but that doesn't work
 because it is not the right type of thing (for one its not a "JavaScript World" type 
 of thing, its an "Ocaml world" type of thing).
@@ -443,9 +442,9 @@ in which type errors produced by type inference can be confusing. The type check
 really doesn't make a distinction between the two sides of the 'equation' it just
 knows that those two things do no match and that this is a problem (i.e. it doesn't
 consider which of the two sides of the equation are under our control). Anyway...
-what we have to figure out is what *does* the property expect, or what *is*
-a `(Html.window Js.t, Html.event Js.t) Dom.event_listener`... and how can we
-make one by wrapping our `on_load` Ocaml function?
+what we have to figure out is what *does* the property expect, or in other words 
+what actually *is* a `(Html.window Js.t, Html.event Js.t) Dom.event_listener`... 
+and how can we make one by wrapping our `on_load` Ocaml function?
 
 Let's start looking at the type defintion of `event_listener` [in the docs](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Dom/index.html#type-event_listener):
 
@@ -527,14 +526,14 @@ in the html page into a more re-usable abstraction and put it in a reusable libr
 
 In the `lib` folder (this was setup for us way back when we did `dune init proj ...`)... let's create
 a `message_box.ml` file. We'll turn this into a module that will provide a means to 
-`create` a reusable messagebox that we can add to our page.
+`create` a reusable messagebox and add it to our page.
 
 The idea here is to create a more high-level api as you might expect from a
-'message_box. I.e it should provide methods/functions to set the message while abstracts 
-away the implementation details of how it uses html dom elements to render itself onto
+'message_box'. I.e it should provide simple methods/functions to set the message while 
+abstracting away the implementation details of how it uses html dom elements to render itself onto
 the web page.
 
-For now we just start with this:
+For now we just start with this 'dummy' implementation:
 
 ```
 module Html = Js_of_ocaml.Dom_html
@@ -618,10 +617,15 @@ Right, we have to add `Js_of_ocaml` preprocessor as well if we want to use the s
 
 This time it builds and when we run it it works as before.
 
+Note: If you are surprised we don't need a `(modes js)` in there somewhere as well... 
+I was too, but it seems we don't need that on library code (presumably just the fact 
+that you are depending on the library from something that compiles to `.js` is enough 
+for `Js_of_ocaml` compiler to know it has to convert it into `.js` in order to use it)
+
 ### A basic reusable message_box widget
 
-Let's start by defining the api that we'd like to use in a new file 
-at `lib/message_box.mli`
+Now that we have it all building properly, let's start by defining the api that we'd 
+like to use in a new file `lib/message_box.mli`:
 
 ```ocaml
 (**
@@ -681,9 +685,10 @@ let read box = box.txt
 The messagebox's internal representation keeps track of the current text as well
 as a reference to the `<p>` node in the dom where the message is displayed in the page.
 
-The code should be mostly familiar and easy to follow. Note that when we
+The code should be mostly familiar from before and easy to follow. Note that when we
 `create` a messagebox we automatically add it to the `document` while taking
-care of `onload` related timing issues.
+care of `onload` related timing issues. (Note: the onload is also abstracted
+into a seperate library module called [On_loaded](lib/on_loaded.mli)).
 
 ### Adding a 'counter' to our page
 
@@ -716,6 +721,136 @@ asynchronous callbacks are executed, and that is why the results are a bit
 simplistic api/implementation for our messagebox a little to allow the user 
 to have more control over when or where elements are actually added to the dom.
 
+### Updating the counter periodically
+
+Next, let's actually make the counter update, incrementing it every second.
+
+One way to do this might be using the `Lwt` library, but instead we'll try
+to use the [JavaScript setInterval](https://javascript.info/settimeout-setinterval) 
+function. This function is accesslible from `Js_of_ocaml`.
+
+Tip: if you are trying to find a known JavaScript api function, you can
+try typing its name into the searchbox on the [library docs on ocaml.org](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Js/index.html):
+
+![alt text](screenshots/docs-search-setInterval.png)
+
+Two 'incarnations' of the function are defined on the `window` object.
+
+Let's start by defining a Ocaml function we want to execute every second to
+update and re-display a counter.
+
+```
+  let counter_value = ref 0 in
+  let every_second () = 
+    MessageBox.update ctr ("Counter: "^ (string_of_int !counter_value));
+    counter_value := !counter_value + 1
+  in ...
+```
+
+Great! Now we just have to figure out how to use `window##setInterval` to
+call this function at regular 1 second intervals. Once more there's
+a bit of "Js Versus Ocaml types puzzle" to solve. I'll just leave
+you with the solution this time:
+
+```
+module Html = Js_of_ocaml.Dom_html
+module Js = Js_of_ocaml.Js
+module Dom = Js_of_ocaml.Dom
+module MessageBox = Jsoo_tut.Message_box
+
+let () = 
+  print_endline "Script is starting";
+  let _hello = MessageBox.create "Hello Dom World!" in
+  let ctr = MessageBox.create "Counter will be here" in
+  let counter_value = ref 0 in
+  let every_second () = 
+    MessageBox.update ctr ("Counter: "^ (string_of_int !counter_value));
+    counter_value := !counter_value + 1
+  in
+  Html.window##setInterval (Js.wrap_callback every_second) 1000.0 |> ignore
+```
+
+**Exercise:** you should be able to figure out how we got
+there by perusing the `Js_of_ocaml` library docs.
+
+Now when we run our example you'll see a counter which increments every second.
+
+**Exercise:** In a manner similar to how we made the `MessageBox` into a 
+reusable component, you can try defining a `CounterBox` module that internally
+uses a `MessageBox` to display its value and:
+- encapsulates the counter's state
+- provides functions for setting/incrementing/reading the current value of the
+  counter.
+
+### Reacting to Mouse Events
+
+In the next step we will add a 'onclick' handler to the counter. Whenever we click the
+counter, we'll reset its value to 0. 
+
+Note 1: A proper ui design would probably use an actual 'Button', for simplicity's sake
+we'll just react to clicks directly on the counter element itself. 
+
+Note 2: If you are familiar with and like to use `Lwt` then [Js_of_ocaml_lwt](https://ocaml.org/p/js_of_ocaml-lwt/5.9.0/doc/Js_of_ocaml_lwt/Lwt_js_events/index.html) might provide
+a more convenient way to react to events (you can write code that 'looks like' it is blocking
+while it waits for an even to happen). But in this tutorial we'll use the api
+on Dom elements more directly to attach a 'callback/handler' function instead.
+
+Once more this 'exercise' starts with understanding how you might [do this in JavaScript](https://www.w3schools.com/jsref/met_element_addeventlistener.asp); and then converting that understanding into `Js_of_ocaml`. We'll use this [binding](https://ocaml.org/p/js_of_ocaml/5.9.0/doc/Js_of_ocaml/Dom_html/index.html#val-addEventListener).
+
+For convenience instead of working the "types puzzle solution" into our main code, we'll add
+some simple and easy to use api to our `Message_box` to hide it:
+
+```ocaml
+(* in message_box.mli *)
+(** Attach a on_click handler to the message box *)
+val on_click : t -> (unit -> bool) -> unit
+
+(* in message_box.ml *)
+let on_click box handler = 
+  let wrapped_handler = Dom.handler (fun _ -> 
+    Js.bool (handler ())
+  ) in
+  Dom.addEventListener box.node Html.Event.click wrapped_handler Js._false |> ignore
+```
+
+We can now use it like this:
+
+```ocaml
+(* hello_dom.ml *)
+module Html = Js_of_ocaml.Dom_html
+module Js = Js_of_ocaml.Js
+module Dom = Js_of_ocaml.Dom
+module MessageBox = Jsoo_tut.Message_box
+
+let () = 
+  print_endline "Script is starting";
+  let _hello = MessageBox.create "Hello Dom World!" in
+  let ctr = MessageBox.create "Counter will be here" in
+  let counter_value = ref 0 in
+  let every_second () = 
+    MessageBox.update ctr ("Counter: "^ (string_of_int !counter_value));
+    counter_value := !counter_value + 1
+  in
+  Html.window##setInterval (Js.wrap_callback every_second) 1000.0 |> ignore;
+  MessageBox.on_click ctr (fun () -> 
+    print_endline "Clicked the counter";
+    counter_value := 0;
+    true
+  )
+```
+
+This concludes the tutorial for now.
+
+## Further learning / exercises
+
+Here are some ideas for further learning and exercises
+
+- redesing the ui to use a proper button
+- redesign the 'component' api to better control the layout on the page (i.e allow a user of the api
+  to control the ordering or precise location in dom where a component's elements will be added)
+- Restart this tutorial from scratch but now use [IncrDom](https://github.com/janestreet/incr_dom) 
+  for a better (more efficient and cleaner) way to do the same thing (or maybe something more
+  interesting and complex)
 
 
 
