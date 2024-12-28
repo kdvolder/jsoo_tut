@@ -27,3 +27,9 @@ let update box new_text =
   Dom.appendChild node (doc##createTextNode (Js.string new_text))
 
 let read box = box.txt
+
+let on_click box handler = 
+  let wrapped_handler = Dom.handler (fun _ -> 
+    Js.bool (handler ())
+  ) in
+  Dom.addEventListener box.node Html.Event.click wrapped_handler Js._false |> ignore

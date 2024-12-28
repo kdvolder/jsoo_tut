@@ -13,5 +13,9 @@ let () =
     counter_value := !counter_value + 1
   in
   let _ = Html.window##setInterval (Js.wrap_callback every_second) 1000.0 in
-  ()
+  MessageBox.on_click ctr (fun () -> 
+    print_endline "Clicked the counter";
+    counter_value := 0;
+    true
+  )
   

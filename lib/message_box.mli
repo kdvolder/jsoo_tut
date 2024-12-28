@@ -16,3 +16,6 @@ val update : t -> string -> unit
 
 (** [read box] retrieves the currently displayed message*) 
 val read : t -> string
+
+(** Attach a on_click handler to the message box *)
+val on_click : t -> (unit -> bool) -> unit
