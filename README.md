@@ -11,7 +11,7 @@ The 'application' we are building is very similar:
  - adding a 'reset' button to reset the counter.
 
 How this is different from the tutorial it is based on: 
-- We will not be using the `Graphics` library to draw things in a canvase. Instead we'll use more  
+- We will not be using the `Graphics` library to draw things in a canvas. Instead we'll use more  
   low-level `Js_of_ocaml` library apis to directly manipulate the dom.
 - We'll also delve a little deeper into the steps the setup your project build files and 'IDE'
   to edit, build and run your code. I find that this often gives me more troubles than 
